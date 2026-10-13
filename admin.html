@@ -1,0 +1,1158 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NAQRA — Administration</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/utif@3.1.0/UTIF.min.js"></script>
+
+<style>
+:root {
+  --bg:#f4f5f7; --card:#fff; --text:#202124;
+  --muted:#737780; --border:#e5e7eb; --dark:#202124;
+  --red:#c62828; --green:#18864b;
+}
+* { box-sizing:border-box; }
+body { margin:0; font-family:Arial,sans-serif; background:var(--bg); color:var(--text); }
+button,input,textarea,select { font:inherit; }
+button { cursor:pointer; }
+button:disabled { opacity:.55; cursor:not-allowed; }
+.hidden { display:none!important; }
+.container { max-width:1200px; margin:auto; padding:22px; }
+.topbar { display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:22px; }
+.brand { display:flex; align-items:center; gap:12px; }
+.logo { width:44px; height:44px; border-radius:13px; background:var(--dark); color:white; display:grid; place-items:center; font-weight:900; }
+.brand h1 { font-size:20px; margin:0; letter-spacing:1px; }
+.brand p { margin:5px 0 0; color:var(--muted); font-size:12px; }
+.actions { display:flex; gap:8px; flex-wrap:wrap; }
+.btn { border:1px solid var(--border); border-radius:10px; padding:11px 14px; background:white; color:var(--text); font-weight:700; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; }
+.btn.primary { background:var(--dark); color:white; border-color:var(--dark); }
+.btn.danger { color:var(--red); border-color:#ffd5d5; background:#fff7f7; }
+.btn.small { padding:8px 10px; font-size:12px; }
+.btn.full { width:100%; }
+.card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px; margin-bottom:18px; box-shadow:0 4px 15px #00000005; }
+.toolbar { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
+h2 { font-size:18px; margin:0 0 16px; }
+input,textarea,select { width:100%; padding:12px; border:1px solid #dfe2e7; border-radius:10px; background:white; outline:none; color:var(--text); }
+input:focus,textarea:focus,select:focus { border-color:#8995b5; }
+textarea { min-height:90px; resize:vertical; }
+.search { max-width:320px; }
+.table-wrap { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; min-width:460px; }
+th,td { padding:13px 10px; text-align:left; border-bottom:1px solid var(--border); }
+th { font-size:11px; color:var(--muted); text-transform:uppercase; }
+td { font-size:13px; }
+.client-name { display:flex; align-items:center; gap:10px; }
+.avatar { width:38px; height:38px; border-radius:10px; object-fit:cover; background:#eceef2; display:grid; place-items:center; flex-shrink:0; }
+.row-actions { display:flex; gap:6px; flex-wrap:wrap; }
+.field { margin-bottom:14px; }
+.field label { display:block; font-weight:700; font-size:12px; margin-bottom:7px; }
+.hint { font-size:11px; color:var(--muted); margin-top:5px; line-height:1.5; }
+.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:0 14px; }
+.span2 { grid-column:1/-1; }
+.modal { position:fixed; inset:0; background:#0007; z-index:10; display:none; align-items:center; justify-content:center; padding:15px; }
+.modal.show { display:flex; }
+.modal-card { background:white; border-radius:16px; padding:22px; width:100%; max-width:720px; max-height:92vh; overflow:auto; }
+.modal-head { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:18px; }
+.modal-head h2 { margin:0; }
+.close { border:0; background:#f0f1f3; border-radius:8px; padding:8px 11px; }
+.form-actions { display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap; margin-top:18px; }
+.preview { width:70px; height:70px; border-radius:12px; object-fit:cover; background:#eee; margin-top:8px; }
+.toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#202124; color:white; padding:12px 16px; border-radius:10px; z-index:30; max-width:90%; font-size:13px; overflow-wrap:anywhere; }
+.empty { text-align:center; color:var(--muted); padding:35px 10px; }
+.login-box { max-width:420px; margin:8vh auto; }
+.login-box h2 { margin-bottom:8px; }
+.muted { color:var(--muted); font-size:13px; line-height:1.6; }
+.linkbox { background:#f5f6f8; border:1px solid var(--border); padding:12px; border-radius:10px; overflow-wrap:anywhere; font-size:13px; margin:10px 0; }
+
+@media(max-width:650px) {
+  .container { padding:13px; }
+  .card { padding:15px; }
+  .search { max-width:none; }
+  .form-grid { grid-template-columns:1fr; }
+  .span2 { grid-column:auto; }
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<section id="loginSection" class="card login-box">
+  <div class="brand" style="margin-bottom:24px">
+    <div class="logo">N</div>
+    <div><h1>NAQRA</h1><p>Administration sécurisée</p></div>
+  </div>
+  <h2>Connexion</h2>
+  <p class="muted">Connectez-vous avec votre compte Supabase.</p>
+  <form id="loginForm">
+    <div class="field">
+      <label for="email">Adresse e-mail</label>
+      <input id="email" type="email" autocomplete="username" required>
+    </div>
+    <div class="field">
+      <label for="password">Mot de passe</label>
+      <input id="password" type="password" autocomplete="current-password" required>
+    </div>
+    <button class="btn primary full" type="submit">Se connecter</button>
+  </form>
+  <p id="loginMessage" class="muted" role="status"></p>
+</section>
+
+<main id="dashboard" class="hidden">
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">N</div>
+      <div><h1>NAQRA</h1><p>Gestion des pages clients</p></div>
+    </div>
+    <div class="actions">
+      <button class="btn primary" id="addBtn">+ Nouveau client</button>
+      <button class="btn" id="logoutBtn">Déconnexion</button>
+    </div>
+  </header>
+
+  <section class="card">
+    <div class="toolbar">
+      <h2 style="margin:0">Mes clients</h2>
+      <input class="search" id="searchInput" type="search" placeholder="Rechercher un client...">
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Client</th><th>Actions</th></tr></thead>
+        <tbody id="clientsBody">
+          <tr><td colspan="2" class="empty">Chargement...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+</div>
+
+<div class="modal" id="clientModal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h2 id="formTitle">Nouveau client</h2>
+      <button class="close" data-close="clientModal" type="button">✕</button>
+    </div>
+
+    <form id="clientForm">
+      <input type="hidden" id="clientId">
+      <div class="form-grid">
+        <div class="field span2">
+          <label for="clientName">Nom du client *</label>
+          <input id="clientName" required maxlength="120" placeholder="Nom de la boutique">
+        </div>
+        <div class="field span2">
+          <label for="description">Description</label>
+          <textarea id="description" maxlength="1000" placeholder="Présentation de l'activité"></textarea>
+        </div>
+
+        <div class="field"><label for="instagram">Instagram</label><input id="instagram" type="url" placeholder="https://instagram.com/..."></div>
+        <div class="field"><label for="facebook">Facebook</label><input id="facebook" type="url" placeholder="https://facebook.com/..."></div>
+        <div class="field"><label for="tiktok">TikTok</label><input id="tiktok" type="url" placeholder="https://tiktok.com/@..."></div>
+        <div class="field"><label for="snapchat">Snapchat</label><input id="snapchat" type="url" placeholder="https://snapchat.com/add/..."></div>
+        <div class="field"><label for="website">Site web</label><input id="website" type="url" placeholder="https://example.com"></div>
+        <div class="field"><label for="googleMaps">Google Maps</label><input id="googleMaps" type="url" placeholder="Lien Google Maps"></div>
+        <div class="field"><label for="phone">Téléphone principal</label><input id="phone" type="tel" placeholder="+213..."></div>
+        <div class="field"><label for="phone2">Téléphone secondaire</label><input id="phone2" type="tel" placeholder="+213..."></div>
+        <div class="field"><label for="whatsapp">WhatsApp principal</label><input id="whatsapp" type="tel" placeholder="+213..."></div>
+        <div class="field"><label for="whatsapp2">WhatsApp secondaire</label><input id="whatsapp2" type="tel" placeholder="+213..."></div>
+
+        <div class="field">
+          <label for="profileFile">Photo de profil</label>
+          <input id="profileFile" type="file" accept="image/*,.heic,.heif,.avif,.bmp,.tif,.tiff,.gif,.svg,.ico,.jxl,.dng,.raw,.cr2,.cr3,.nef,.arw,.orf,.rw2">
+          <img id="profilePreview" class="preview hidden" alt="Aperçu du profil">
+          <div class="hint" id="profileHint">Sélectionnez une image. Conversion automatique si le navigateur le permet.</div>
+        </div>
+        <div class="field">
+          <label for="coverFile">Photo de couverture</label>
+          <input id="coverFile" type="file" accept="image/*,.heic,.heif,.avif,.bmp,.tif,.tiff,.gif,.svg,.ico,.jxl,.dng,.raw,.cr2,.cr3,.nef,.arw,.orf,.rw2">
+          <img id="coverPreview" class="preview hidden" alt="Aperçu de la couverture">
+          <div class="hint" id="coverHint">Sélectionnez une image. Conversion automatique si le navigateur le permet.</div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn" type="button" data-close="clientModal">Annuler</button>
+        <button class="btn primary" id="saveBtn" type="submit">Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal" id="linkModal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h2>Lien de la page client</h2>
+      <button class="close" data-close="linkModal" type="button">✕</button>
+    </div>
+    <p class="muted">Copiez ce lien pour créer votre QR code ou programmer votre tag NFC.</p>
+    <div class="linkbox" id="clientLink"></div>
+    <div class="actions">
+      <button class="btn primary" id="copyLinkBtn">Copier le lien</button>
+      <a class="btn" id="openLinkBtn" href="#" target="_blank" rel="noopener">Ouvrir la page</a>
+    </div>
+  </div>
+</div>
+
+<!-- Fenêtre de confirmation de suppression intégrée au site -->
+<div class="modal" id="deleteModal">
+  <div class="modal-card" style="max-width:420px">
+    <div class="modal-head">
+      <h2>Supprimer le client ?</h2>
+      <button class="close" id="cancelDeleteX" type="button">✕</button>
+    </div>
+    <p class="muted" id="deleteMessage">Cette action est irréversible.</p>
+    <div class="form-actions">
+      <button class="btn" id="cancelDelete" type="button">Annuler</button>
+      <button class="btn danger" id="confirmDelete" type="button">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast hidden" id="toast" role="status"></div>
+
+<script>
+"use strict";
+
+const SUPABASE_URL = "https://gzdaauwvteuouxuqjmbz.supabase.co";
+const SUPABASE_KEY = "sb_publishable_eicaSCmYo18u524iPoChHw_1d5t9Sqy";
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentUser = null;
+let currentVendor = null;
+let clients = [];
+let editingClient = null;
+let pendingDeleteClient = null;
+let toastTimer = null;
+
+const compressionTasks = {
+  profile: Promise.resolve(null),
+  cover: Promise.resolve(null)
+};
+const compressedImages = { profile: null, cover: null };
+const $ = id => document.getElementById(id);
+
+function toast(message) {
+  const el = $("toast");
+  el.textContent = message;
+  el.classList.remove("hidden");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.add("hidden"), 5000);
+}
+
+function showModal(id) {
+  $(id).classList.add("show");
+}
+
+function closeModal(id) {
+  $(id).classList.remove("show");
+}
+
+document.querySelectorAll("[data-close]").forEach(button => {
+  button.addEventListener("click", () => closeModal(button.dataset.close));
+});
+
+function safeText(value) {
+  return String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
+  })[char]);
+}
+
+function normalizeSlug(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase().trim()
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
+
+function validHttpUrl(value) {
+  if (!value) return true;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
+function pageUrl(slug) {
+  const url = new URL("./index.html", window.location.href);
+  url.searchParams.set("id", slug);
+  return url.href;
+}
+
+function generateUniqueSlug(name) {
+  let base = normalizeSlug(name);
+  if (!base) base = "client-" + Date.now().toString(36);
+
+  const existingSlugs = new Set(
+    clients.map(client => String(client.slug || "").toLowerCase())
+  );
+
+  let slug = base;
+  let counter = 2;
+
+  while (existingSlugs.has(slug.toLowerCase())) {
+    const suffix = "-" + counter++;
+    slug = base.slice(0, 80 - suffix.length) + suffix;
+  }
+
+  return slug;
+}
+
+function setLoginMessage(message) {
+  $("loginMessage").textContent = message;
+}
+
+async function loadSession() {
+  const { data, error } = await db.auth.getSession();
+  if (error) throw error;
+
+  if (!data.session) {
+    showLogin();
+    return;
+  }
+
+  currentUser = data.session.user;
+  await loadVendor();
+}
+
+function showLogin() {
+  $("dashboard").classList.add("hidden");
+  $("loginSection").classList.remove("hidden");
+}
+
+function showDashboard() {
+  $("loginSection").classList.add("hidden");
+  $("dashboard").classList.remove("hidden");
+}
+
+async function loadVendor() {
+  const { data, error } = await db
+    .from("vendors")
+    .select("id,name,email,role,status,user_id")
+    .eq("user_id", currentUser.id)
+    .maybeSingle();
+
+  if (error) throw error;
+
+  if (!data || data.status !== "active") {
+    await db.auth.signOut();
+    currentUser = null;
+    currentVendor = null;
+    showLogin();
+    setLoginMessage("Aucun compte vendeur actif n'est associé à cet utilisateur.");
+    return;
+  }
+
+  currentVendor = data;
+  showDashboard();
+  await loadClients();
+}
+
+$("loginForm").addEventListener("submit", async event => {
+  event.preventDefault();
+
+  const button = $("loginForm").querySelector("button[type=submit]");
+  button.disabled = true;
+  setLoginMessage("Connexion en cours...");
+
+  try {
+    const { data, error } = await db.auth.signInWithPassword({
+      email: $("email").value.trim(),
+      password: $("password").value
+    });
+
+    if (error) throw error;
+
+    currentUser = data.user;
+    await loadVendor();
+    setLoginMessage("");
+  } catch (error) {
+    console.error(error);
+    setLoginMessage("Connexion impossible : " + (error.message || "erreur inconnue"));
+  } finally {
+    button.disabled = false;
+  }
+});
+
+$("logoutBtn").addEventListener("click", async () => {
+  const { error } = await db.auth.signOut();
+
+  if (error) {
+    toast("Erreur lors de la déconnexion.");
+    return;
+  }
+
+  currentUser = null;
+  currentVendor = null;
+  clients = [];
+  showLogin();
+});
+
+async function loadClients() {
+  if (!currentVendor) return;
+
+  $("clientsBody").innerHTML =
+    '<tr><td colspan="2" class="empty">Chargement...</td></tr>';
+
+  const { data, error } = await db
+    .from("clients")
+    .select("*")
+    .eq("vendor_id", currentVendor.id)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error(error);
+    $("clientsBody").innerHTML =
+      '<tr><td colspan="2" class="empty">Erreur de chargement. Vérifiez les politiques RLS.</td></tr>';
+    toast("Impossible de charger les clients.");
+    return;
+  }
+
+  clients = data || [];
+  renderClients();
+}
+
+function renderClients() {
+  const search = $("searchInput").value.trim().toLowerCase();
+
+  const list = clients.filter(client =>
+    String(client.name || "").toLowerCase().includes(search) ||
+    String(client.slug || "").toLowerCase().includes(search)
+  );
+
+  if (!list.length) {
+    $("clientsBody").innerHTML =
+      '<tr><td colspan="2" class="empty">Aucun client trouvé. Cliquez sur « Nouveau client » pour commencer.</td></tr>';
+    return;
+  }
+
+  $("clientsBody").innerHTML = list.map(client => {
+    const image = client.profile_image || "";
+
+    const avatar = image
+      ? `<img class="avatar" src="${safeText(image)}" alt="" loading="lazy" onerror="this.style.display='none'">`
+      : `<div class="avatar">${safeText((client.name || "C").charAt(0).toUpperCase())}</div>`;
+
+    return `
+      <tr>
+        <td>
+          <div class="client-name">
+            ${avatar}
+            <strong>${safeText(client.name || "Sans nom")}</strong>
+          </div>
+        </td>
+        <td>
+          <div class="row-actions">
+            <button class="btn small" data-action="qr" data-id="${safeText(client.id)}">↓ QR PNG</button>
+            <button class="btn small" data-action="link" data-id="${safeText(client.id)}">Lien</button>
+            <button class="btn small" data-action="edit" data-id="${safeText(client.id)}">Modifier</button>
+            <button class="btn small danger" data-action="delete" data-id="${safeText(client.id)}">Supprimer</button>
+          </div>
+        </td>
+      </tr>`;
+  }).join("");
+}
+
+$("searchInput").addEventListener("input", renderClients);
+
+$("clientsBody").addEventListener("click", async event => {
+  const button = event.target.closest("button[data-action]");
+  if (!button) return;
+
+  const client = clients.find(c => String(c.id) === button.dataset.id);
+  if (!client) return;
+
+  if (button.dataset.action === "qr") {
+    button.disabled = true;
+    try {
+      await downloadClientQr(client);
+    } finally {
+      button.disabled = false;
+    }
+    return;
+  }
+
+  if (button.dataset.action === "link") showClientLink(client);
+  if (button.dataset.action === "edit") openEditForm(client);
+  if (button.dataset.action === "delete") askDeleteClient(client);
+});
+
+function showClientLink(client) {
+  if (!client.slug) {
+    toast("Ce client n'a pas d'identifiant de page.");
+    return;
+  }
+
+  const link = pageUrl(client.slug);
+  $("clientLink").textContent = link;
+  $("openLinkBtn").href = link;
+  showModal("linkModal");
+}
+
+/*
+ * QR code en PNG via un service externe.
+ * Le QR contient uniquement le lien existant du client.
+ */
+async function downloadClientQr(client) {
+  if (!client.slug) {
+    toast("Ce client n'a pas d'identifiant de page.");
+    return;
+  }
+
+  const link = pageUrl(client.slug);
+
+  try {
+    const qrUrl = new URL(
+      "https://api.qrserver.com/v1/create-qr-code/"
+    );
+
+    qrUrl.searchParams.set("data", link);
+    qrUrl.searchParams.set("size", "1000x1000");
+    qrUrl.searchParams.set("format", "png");
+    qrUrl.searchParams.set("color", "0-0-0");
+    qrUrl.searchParams.set("bgcolor", "ffffff");
+    qrUrl.searchParams.set("margin", "4");
+    qrUrl.searchParams.set("ecc", "L");
+
+    const response = await fetch(qrUrl.toString());
+
+    if (!response.ok) {
+      throw new Error("QR service unavailable");
+    }
+
+    const blob = await response.blob();
+
+    if (!blob.type.includes("image")) {
+      throw new Error("Le service n'a pas retourné une image.");
+    }
+
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+
+    a.href = objectUrl;
+    a.download =
+      `NAQRA-QR-${normalizeSlug(client.slug) || "client"}.png`;
+
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
+    toast("QR Code téléchargé en PNG.");
+  } catch (error) {
+    console.error("QR download error:", error);
+    toast("Échec du QR. Vérifiez la connexion Internet et réessayez.");
+  }
+}
+
+$("copyLinkBtn").addEventListener("click", async () => {
+  const link = $("clientLink").textContent;
+
+  try {
+    await navigator.clipboard.writeText(link);
+    toast("Lien copié.");
+  } catch {
+    toast("Copie impossible. Sélectionnez le lien et copiez-le manuellement.");
+  }
+});
+
+/* Fenêtre de confirmation de suppression personnalisée */
+function askDeleteClient(client) {
+  pendingDeleteClient = client;
+
+  $("deleteMessage").textContent =
+    `Voulez-vous vraiment supprimer « ${client.name} » ? Cette action est irréversible.`;
+
+  showModal("deleteModal");
+}
+
+function cancelDeleteClient() {
+  pendingDeleteClient = null;
+  closeModal("deleteModal");
+}
+
+$("cancelDelete").addEventListener("click", cancelDeleteClient);
+$("cancelDeleteX").addEventListener("click", cancelDeleteClient);
+
+$("confirmDelete").addEventListener("click", async () => {
+  const client = pendingDeleteClient;
+
+  if (!client || !currentVendor) return;
+
+  const button = $("confirmDelete");
+  button.disabled = true;
+  button.textContent = "Suppression...";
+
+  try {
+    const { error } = await db
+      .from("clients")
+      .delete()
+      .eq("id", client.id)
+      .eq("vendor_id", currentVendor.id);
+
+    if (error) throw error;
+
+    closeModal("deleteModal");
+    pendingDeleteClient = null;
+
+    toast("Client supprimé.");
+    await loadClients();
+  } catch (error) {
+    console.error(error);
+    toast("Suppression impossible : " + error.message);
+  } finally {
+    button.disabled = false;
+    button.textContent = "Supprimer";
+  }
+});
+
+function clearPreview(id) {
+  const preview = $(id);
+
+  if (preview.dataset.objectUrl) {
+    URL.revokeObjectURL(preview.dataset.objectUrl);
+    delete preview.dataset.objectUrl;
+  }
+
+  preview.removeAttribute("src");
+  preview.classList.add("hidden");
+}
+
+function clearForm() {
+  clearPreview("profilePreview");
+  clearPreview("coverPreview");
+
+  $("clientForm").reset();
+  $("clientId").value = "";
+
+  $("profileHint").textContent =
+    "Sélectionnez une image. Conversion automatique si le navigateur le permet.";
+  $("coverHint").textContent =
+    "Sélectionnez une image. Conversion automatique si le navigateur le permet.";
+
+  compressedImages.profile = null;
+  compressedImages.cover = null;
+  compressionTasks.profile = Promise.resolve(null);
+  compressionTasks.cover = Promise.resolve(null);
+
+  $("formTitle").textContent = "Nouveau client";
+  editingClient = null;
+}
+
+$("addBtn").addEventListener("click", () => {
+  clearForm();
+  showModal("clientModal");
+});
+
+function setField(id, value) {
+  $(id).value = value || "";
+}
+
+function openEditForm(client) {
+  clearForm();
+  editingClient = client;
+
+  $("formTitle").textContent = "Modifier le client";
+  $("clientId").value = client.id;
+
+  setField("clientName", client.name);
+  setField("description", client.description);
+  setField("instagram", client.instagram);
+  setField("facebook", client.facebook);
+  setField("tiktok", client.tiktok);
+  setField("snapchat", client.snapchat);
+  setField("website", client.website);
+  setField("googleMaps", client.google_maps);
+  setField("phone", client.phone);
+  setField("phone2", client.phone2);
+  setField("whatsapp", client.whatsapp);
+  setField("whatsapp2", client.whatsapp2);
+
+  if (client.profile_image) {
+    $("profilePreview").src = client.profile_image;
+    $("profilePreview").classList.remove("hidden");
+  }
+
+  if (client.cover_image) {
+    $("coverPreview").src = client.cover_image;
+    $("coverPreview").classList.remove("hidden");
+  }
+
+  showModal("clientModal");
+}
+
+function extensionOf(file) {
+  const name = String(file.name || "").toLowerCase();
+  const dot = name.lastIndexOf(".");
+  return dot >= 0 ? name.slice(dot + 1) : "";
+}
+
+function isHeicFile(file) {
+  const type = String(file.type || "").toLowerCase();
+  const ext = extensionOf(file);
+  return type.includes("heic") || type.includes("heif") ||
+    ext === "heic" || ext === "heif";
+}
+
+function isTiffFile(file) {
+  const type = String(file.type || "").toLowerCase();
+  const ext = extensionOf(file);
+  return type.includes("tiff") || ext === "tif" || ext === "tiff";
+}
+
+function canvasToBlob(canvas, type, quality) {
+  return new Promise((resolve, reject) => {
+    try {
+      canvas.toBlob(blob => {
+        if (!blob) {
+          reject(new Error("Le navigateur n'a pas pu convertir cette image."));
+          return;
+        }
+        resolve(blob);
+      }, type, quality);
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+async function convertTiffToPng(file) {
+  if (!window.UTIF) {
+    throw new Error("Convertisseur TIFF indisponible. Vérifiez votre connexion Internet.");
+  }
+
+  const buffer = await file.arrayBuffer();
+  const ifds = window.UTIF.decode(buffer);
+
+  if (!ifds || !ifds.length) {
+    throw new Error("Le fichier TIFF semble invalide ou non pris en charge.");
+  }
+
+  window.UTIF.decodeImage(buffer, ifds[0]);
+  const rgba = window.UTIF.toRGBA8(ifds[0]);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = ifds[0].width;
+  canvas.height = ifds[0].height;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas indisponible.");
+
+  ctx.putImageData(
+    new ImageData(new Uint8ClampedArray(rgba), canvas.width, canvas.height),
+    0, 0
+  );
+
+  return await canvasToBlob(canvas, "image/png");
+}
+
+async function convertSourceFile(file) {
+  if (isHeicFile(file)) {
+    if (typeof window.heic2any !== "function") {
+      throw new Error("Convertisseur HEIC indisponible. Vérifiez votre connexion Internet.");
+    }
+
+    const result = await window.heic2any({
+      blob: file,
+      toType: "image/png"
+    });
+
+    return Array.isArray(result) ? result[0] : result;
+  }
+
+  if (isTiffFile(file)) {
+    return await convertTiffToPng(file);
+  }
+
+  return file;
+}
+
+function decodeBlob(blob) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    let settled = false;
+
+    const cleanup = () => URL.revokeObjectURL(url);
+
+    img.onload = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+
+      if (!img.naturalWidth || !img.naturalHeight) {
+        reject(new Error("L'image ne contient pas de dimensions valides."));
+        return;
+      }
+
+      resolve(img);
+    };
+
+    img.onerror = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(new Error("Le navigateur ne sait pas décoder cette image."));
+    };
+
+    img.src = url;
+  });
+}
+
+async function loadImage(file) {
+  if (!file || !file.size) {
+    throw new Error("Le fichier est vide ou illisible.");
+  }
+
+  if (file.size > 50 * 1024 * 1024) {
+    throw new Error("Le fichier dépasse 50 Mo. Réduisez sa taille puis réessayez.");
+  }
+
+  let convertedFile;
+
+  try {
+    convertedFile = await convertSourceFile(file);
+  } catch (error) {
+    console.warn("Conversion spécialisée échouée :", error);
+    throw new Error(error.message || "Impossible de convertir cette image.");
+  }
+
+  try {
+    return await decodeBlob(convertedFile);
+  } catch (error) {
+    console.error("Décodage image échoué :", error);
+    throw new Error(
+      "Le navigateur ne peut pas lire cette image. Les fichiers RAW, certains SVG/JXL et les formats propriétaires nécessitent un convertisseur spécialisé."
+    );
+  }
+}
+
+async function compressImage(file, maxBytes = 100 * 1024) {
+  const img = await loadImage(file);
+
+  let width = img.naturalWidth;
+  let height = img.naturalHeight;
+
+  const maxDimension = 1600;
+  const scale = Math.min(1, maxDimension / Math.max(width, height));
+
+  width = Math.max(1, Math.round(width * scale));
+  height = Math.max(1, Math.round(height * scale));
+
+  let bestBlob = null;
+  const outputTypes = ["image/webp", "image/jpeg"];
+  const qualities = [0.86, 0.76, 0.66, 0.56, 0.46, 0.36];
+
+  for (let pass = 0; pass < 10; pass++) {
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Impossible de préparer l'image.");
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, width, height);
+    ctx.drawImage(img, 0, 0, width, height);
+
+    for (const type of outputTypes) {
+      for (const quality of qualities) {
+        let blob;
+
+        try {
+          blob = await canvasToBlob(canvas, type, quality);
+        } catch {
+          continue;
+        }
+
+        if (!blob || !blob.size) continue;
+        if (blob.type !== "image/webp" && blob.type !== "image/jpeg") continue;
+
+        if (!bestBlob || blob.size < bestBlob.size) bestBlob = blob;
+
+        if (blob.size <= maxBytes) {
+          const ext = blob.type === "image/webp" ? "webp" : "jpg";
+
+          return new File([blob], `image-${Date.now()}.${ext}`, {
+            type: blob.type,
+            lastModified: Date.now()
+          });
+        }
+      }
+    }
+
+    if (Math.max(width, height) <= 240) break;
+
+    width = Math.max(1, Math.round(width * 0.75));
+    height = Math.max(1, Math.round(height * 0.75));
+  }
+
+  if (!bestBlob) {
+    throw new Error("La conversion a échoué. Essayez une autre image.");
+  }
+
+  const ext = bestBlob.type === "image/webp" ? "webp" : "jpg";
+
+  return new File([bestBlob], `image-${Date.now()}.${ext}`, {
+    type: bestBlob.type,
+    lastModified: Date.now()
+  });
+}
+
+function formatBytes(bytes) {
+  return bytes < 1024 ? bytes + " B" : (bytes / 1024).toFixed(1) + " KB";
+}
+
+async function handleImageChange(inputId, previewId, hintId, kind) {
+  const input = $(inputId);
+  const file = input.files && input.files[0];
+  const hint = $(hintId);
+  const preview = $(previewId);
+
+  compressedImages[kind] = null;
+  clearPreview(previewId);
+
+  if (!file) {
+    compressionTasks[kind] = Promise.resolve(null);
+    hint.textContent = "Aucune nouvelle image sélectionnée.";
+    return;
+  }
+
+  hint.textContent = "Lecture, conversion et compression en cours...";
+
+  compressionTasks[kind] = compressImage(file)
+    .then(compressed => {
+      compressedImages[kind] = compressed;
+
+      const url = URL.createObjectURL(compressed);
+      preview.dataset.objectUrl = url;
+      preview.src = url;
+      preview.classList.remove("hidden");
+
+      hint.textContent =
+        "Image prête : " + formatBytes(compressed.size) +
+        " (" + compressed.type + ")";
+
+      return compressed;
+    })
+    .catch(error => {
+      console.error("Erreur image :", error);
+      compressedImages[kind] = null;
+      hint.textContent = error.message || "Erreur de lecture ou de conversion.";
+      toast(hint.textContent);
+      return null;
+    });
+
+  await compressionTasks[kind];
+}
+
+$("profileFile").addEventListener("change", () =>
+  handleImageChange("profileFile", "profilePreview", "profileHint", "profile")
+);
+
+$("coverFile").addEventListener("change", () =>
+  handleImageChange("coverFile", "coverPreview", "coverHint", "cover")
+);
+
+function formValue(id) {
+  return $(id).value.trim();
+}
+
+async function uploadImage(file, kind, clientId) {
+  if (!file) return null;
+
+  const extensions = {
+    "image/webp": "webp",
+    "image/jpeg": "jpg"
+  };
+
+  const extension = extensions[file.type];
+
+  if (!extension) {
+    throw new Error("Format de sortie non pris en charge : " + file.type);
+  }
+
+  const path =
+    `${currentVendor.id}/${clientId}/${kind}-${Date.now()}.${extension}`;
+
+  const { error } = await db.storage
+    .from("client-images")
+    .upload(path, file, {
+      contentType: file.type,
+      upsert: false
+    });
+
+  if (error) throw error;
+
+  const { data } = db.storage
+    .from("client-images")
+    .getPublicUrl(path);
+
+  return data.publicUrl;
+}
+
+$("clientForm").addEventListener("submit", async event => {
+  event.preventDefault();
+
+  if (!currentVendor) {
+    toast("Vous devez être connecté.");
+    return;
+  }
+
+  const button = $("saveBtn");
+  button.disabled = true;
+  button.textContent = "Enregistrement...";
+
+  try {
+    const name = formValue("clientName");
+    const existingId = $("clientId").value;
+
+    if (!name) throw new Error("Le nom du client est obligatoire.");
+
+    const urlFields = [
+      "instagram", "facebook", "tiktok",
+      "snapchat", "website", "googleMaps"
+    ];
+
+    for (const field of urlFields) {
+      if (!validHttpUrl(formValue(field))) {
+        throw new Error("Lien invalide dans le champ : " + field);
+      }
+    }
+
+    /* Garder le slug existant pour ne pas changer le lien client. */
+    let slug;
+
+    if (existingId && editingClient) {
+      slug = editingClient.slug || generateUniqueSlug(name);
+    } else {
+      slug = generateUniqueSlug(name);
+    }
+
+    if (!slug) {
+      throw new Error("Impossible de générer l'identifiant de la page.");
+    }
+
+    const hasProfile = $("profileFile").files.length > 0;
+    const hasCover = $("coverFile").files.length > 0;
+
+    const profileFile = hasProfile ? await compressionTasks.profile : null;
+    const coverFile = hasCover ? await compressionTasks.cover : null;
+
+    if (hasProfile && !profileFile) {
+      throw new Error("La photo de profil n'a pas pu être convertie. Essayez JPG ou PNG.");
+    }
+
+    if (hasCover && !coverFile) {
+      throw new Error("La photo de couverture n'a pas pu être convertie. Essayez JPG ou PNG.");
+    }
+
+    const payload = {
+      vendor_id: currentVendor.id,
+      name,
+      slug,
+      description: formValue("description"),
+      instagram: formValue("instagram"),
+      facebook: formValue("facebook"),
+      tiktok: formValue("tiktok"),
+      snapchat: formValue("snapchat"),
+      website: formValue("website"),
+      google_maps: formValue("googleMaps"),
+      phone: formValue("phone"),
+      phone2: formValue("phone2"),
+      whatsapp: formValue("whatsapp"),
+      whatsapp2: formValue("whatsapp2"),
+      is_public: true
+    };
+
+    let clientId = existingId;
+
+    if (clientId) {
+      const { error } = await db
+        .from("clients")
+        .update(payload)
+        .eq("id", clientId)
+        .eq("vendor_id", currentVendor.id);
+
+      if (error) throw error;
+    } else {
+      const { data, error } = await db
+        .from("clients")
+        .insert(payload)
+        .select("*")
+        .single();
+
+      if (error) throw error;
+      clientId = data.id;
+    }
+
+    const imageUpdates = {};
+
+    if (profileFile) {
+      imageUpdates.profile_image =
+        await uploadImage(profileFile, "profile", clientId);
+    }
+
+    if (coverFile) {
+      imageUpdates.cover_image =
+        await uploadImage(coverFile, "cover", clientId);
+    }
+
+    if (Object.keys(imageUpdates).length) {
+      const { error } = await db
+        .from("clients")
+        .update(imageUpdates)
+        .eq("id", clientId)
+        .eq("vendor_id", currentVendor.id);
+
+      if (error) throw error;
+    }
+
+    closeModal("clientModal");
+    clearForm();
+    toast("Client enregistré.");
+    await loadClients();
+
+  } catch (error) {
+    console.error(error);
+    toast(error.message || "Erreur pendant l'enregistrement.");
+  } finally {
+    button.disabled = false;
+    button.textContent = "Enregistrer";
+  }
+});
+
+db.auth.onAuthStateChange(event => {
+  if (event === "SIGNED_OUT") {
+    currentUser = null;
+    currentVendor = null;
+    clients = [];
+    showLogin();
+  }
+});
+
+(async function init() {
+  try {
+    await loadSession();
+  } catch (error) {
+    console.error(error);
+    showLogin();
+    setLoginMessage(
+      "Erreur d'initialisation : " +
+      (error.message || "vérifiez Supabase.")
+    );
+  }
+})();
+</script>
+</body>
+</html>
