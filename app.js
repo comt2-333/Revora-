@@ -17,7 +17,7 @@ const defaultProfile = {
 };
 
 // إعدادات Supabase
-const SUPABASE_URL = "https://exuomzvkcgtieweytilp.supabase.co/rest/v1/";
+const SUPABASE_URL = "https://exuomzvkcgtieweytilp.supabase.co";
 const SUPABASE_KEY = "sb_publishable_dA7Kh41Buo_j620wdcP5vg_jsu5Gs4m";
 
 // قراءة معرّف الزبون من الرابط
